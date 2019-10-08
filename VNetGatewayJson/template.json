@@ -1,0 +1,149 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "gatewayName": {
+      "type": "string"
+    },
+    "virtualNetworkName": {
+      "type": "string"
+    },
+    "publicIpAddressName": {
+      "type": "string"
+    },
+    "gatewayConnectionName": {
+      "type": "string"
+    },
+    "gatewayName2": {
+      "type": "string"
+    },
+    "virtualNetworkName2": {
+      "type": "string"
+    },
+    "publicIpAddressName2": {
+      "type": "string"
+    },
+    "gatewayConnectionName2": {
+      "type": "string"
+    },
+    "sharedKey": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+    "vpnType": "RouteBased",
+    "gatewayType": "Vpn",
+    "sku": "VpnGw1",
+    "subnetName": "GatewaySubnet"
+  },
+  "resources": [
+    {
+      "apiVersion": "2019-02-01",
+      "name": "[parameters('gatewayName')]",
+      "type": "Microsoft.Network/virtualNetworkGateways",
+      "location": "[resourceGroup().location]",
+      "tags": {},
+      "properties": {
+        "gatewayType": "[variables('gatewayType')]",
+        "ipConfigurations": [
+          {
+            "name": "default",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('subnetName'))]"
+              },
+              "publicIpAddress": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIPAddresses', parameters('publicIpAddressName'))]"
+              }
+            }
+          }
+        ],
+        "vpnType": "[variables('vpnType')]",
+        "sku": {
+          "name": "[variables('sku')]",
+          "tier": "[variables('sku')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2019-02-01",
+      "name": "[parameters('gatewayName2')]",
+      "type": "Microsoft.Network/virtualNetworkGateways",
+      "location": "[resourceGroup().location]",
+      "tags": {},
+      "properties": {
+        "gatewayType": "[variables('gatewayType')]",
+        "ipConfigurations": [
+          {
+            "name": "default",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName2'), variables('subnetName'))]"
+              },
+              "publicIpAddress": {
+                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIPAddresses', parameters('publicIpAddressName2'))]"
+              }
+            }
+          }
+        ],
+        "vpnType": "[variables('vpnType')]",
+        "sku": {
+          "name": "[variables('sku')]",
+          "tier": "[variables('sku')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2019-02-01",
+      "name": "[parameters('gatewayConnectionName')]",
+      "type": "Microsoft.Network/connections",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName'))]",
+        "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName2'))]"
+      ],
+      "properties": {
+        "virtualNetworkGateway1": {
+          "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworkGateways', parameters('gatewayName'))]"
+        },
+        "virtualNetworkGateway2": {
+          "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworkGateways', parameters('gatewayName2'))]"
+        },
+        "connectionType": "Vnet2Vnet",
+        "connectionProtocol": "IKEv2",
+        "routingWeight": 0,
+        "sharedKey": "[parameters('sharedKey')]",
+        "enableBgp": false,
+        "usePolicyBasedTrafficSelectors": false,
+        "ipsecPolicies": []
+      }
+    },
+    {
+      "apiVersion": "2019-02-01",
+      "name": "[parameters('gatewayConnectionName2')]",
+      "type": "Microsoft.Network/connections",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName'))]",
+        "[concat('Microsoft.Network/virtualNetworkGateways/', parameters('gatewayName2'))]"
+      ],
+      "properties": {
+        "virtualNetworkGateway1": {
+          "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworkGateways', parameters('gatewayName2'))]"
+        },
+        "virtualNetworkGateway2": {
+          "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworkGateways', parameters('gatewayName'))]"
+        },
+        "connectionType": "Vnet2Vnet",
+        "connectionProtocol": "IKEv2",
+        "routingWeight": 0,
+        "sharedKey": "[parameters('sharedKey')]",
+        "enableBgp": false,
+        "usePolicyBasedTrafficSelectors": false,
+        "ipsecPolicies": []
+      }
+    }
+  ]
+  }

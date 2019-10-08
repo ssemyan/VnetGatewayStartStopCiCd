@@ -1,0 +1,110 @@
+# Starter pipeline
+
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  skipComponentGovernanceDetection: true
+  azureSubscriptionName: 'MySubscription Connection Name'
+  storageAccount: 'MyStorageAccount'
+  containerName: 'vnetgatewayautomationassets'
+  resourceGroup: 'MyResourceGroup'
+  automationAccount: 'MyAutomationAccount'
+  deployRunbookName: 'Create Vnet Gateways'
+  destroyRunbookName: 'Delete Vnet Gateways'
+  deployScheduleName: '0600 Weekdays'
+  deployScheduleTimeGMT: '20:20:00'
+  destroyScheduleName: '1800 Weeknights'
+  destroyScheduleTimeGMT: '01:00:00'
+
+  deployJsonUri: ""
+  deployJsonUriSasToken: ""
+
+steps:
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to ArtifactStagingDirectory'
+  inputs:
+    Contents: |
+     *.ps1
+     **\VNetGatewayJson\*
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: AzureFileCopy@3
+  displayName: 'Copy template and param json to storage account and get URI and SAS token'
+  inputs:
+    SourcePath: '$(Build.ArtifactStagingDirectory)/VNetGatewayJson'
+    azureSubscription: '$(azureSubscriptionName)'
+    Destination: 'AzureBlob'
+    storage: '$(storageAccount)'
+    ContainerName: '$(containerName)'
+    outputStorageUri: 'deployJsonUri'
+    outputStorageContainerSasToken: 'deployJsonUriSasToken'
+    sasTokenTimeOutInMinutes: '525600'
+
+- task: AzurePowerShell@4
+  displayName: 'Update deploy runbook'
+  inputs:
+    azureSubscription: '$(azureSubscriptionName)'
+    ScriptType: 'FilePath'
+    ScriptPath: '$(Build.ArtifactStagingDirectory)/updateRunbook.ps1'
+    ScriptArguments: '-runbookPath $(Build.ArtifactStagingDirectory)/deploy.ps1 -resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -runbookName "$(deployRunbookName)"'
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
+
+- task: AzurePowerShell@4
+  displayName: 'Update destroy runbook'
+  inputs:
+    azureSubscription: '$(azureSubscriptionName)'
+    ScriptType: 'FilePath'
+    ScriptPath: '$(Build.ArtifactStagingDirectory)/updateRunbook.ps1'
+    ScriptArguments: '-runbookPath $(Build.ArtifactStagingDirectory)/destroy.ps1 -resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -runbookName "$(destroyRunbookName)"'
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
+
+- task: AzurePowerShell@4
+  displayName: 'Update deploy schedule'
+  inputs:
+    azureSubscription: '$(azureSubscriptionName)'
+    ScriptType: 'FilePath'
+    ScriptPath: '$(Build.ArtifactStagingDirectory)/updateSchedule.ps1'
+    ScriptArguments: '-resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -scheduleName "$(deployScheduleName)" -startTime "$(deployScheduleTimeGMT)"'
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
+
+- task: AzurePowerShell@4
+  displayName: 'Update destroy schedule'
+  inputs:
+    azureSubscription: '$(azureSubscriptionName)'
+    ScriptType: 'FilePath'
+    ScriptPath: '$(Build.ArtifactStagingDirectory)/updateSchedule.ps1'
+    ScriptArguments: '-resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -scheduleName "$(destroyScheduleName)" -startTime "$(destroyScheduleTimeGMT)"'
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
+
+- task: AzurePowerShell@4
+  displayName: 'Schedule deploy runbook'
+  inputs:
+    azureSubscription: '$(azureSubscriptionName)'
+    ScriptType: 'FilePath'
+    ScriptPath: '$(Build.ArtifactStagingDirectory)/updateRunbookSchedule.ps1'
+    ScriptArguments: '-resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -scheduleName "$(deployScheduleName)" -runbookName "$(deployRunbookName)" -runbookParams @{RESOURCEGROUPNAME="$(resourceGroup)";templateFileUri="$(deployJsonUri)template.json$(deployJsonUriSasToken)";parametersFileUri="$(deployJsonUri)parameters.json$(deployJsonUriSasToken)"} '
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
+
+- task: AzurePowerShell@4
+  displayName: 'Schedule destroy runbook'
+  inputs:
+    azureSubscription: '$(azureSubscriptionName)'
+    ScriptType: 'FilePath'
+    ScriptPath: '$(Build.ArtifactStagingDirectory)/updateRunbookSchedule.ps1'
+    ScriptArguments: '-resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -scheduleName "$(destroyScheduleName)" -runbookName "$(destroyRunbookName)" -runbookParams @{RESOURCEGROUPNAME="$(resourceGroup)";GATEWAYCONNECTIONNAME="Conn12";GATEWAYCONNECTIONNAME2="Conn21";GATEWAYNAME="TMobGateway";GATEWAYNAME2="TMob2Gateway"} '
+    FailOnStandardError: true
+    azurePowerShellVersion: 'LatestVersion'
