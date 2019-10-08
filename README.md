@@ -4,6 +4,8 @@ This sample shows how to use the Azure Powershell modules to create and destroy 
 
 This code can be run on a schedule in Azure Automation. By using Azure DevOps the schedule and runbook scripts can be automatically updated in an Automation Account on every check-in. 
 
+![Process Diagram](https://github.com/ssemyan/VnetGatewayStartStopCiCd/raw/master/ProcessDiagram.png)
+
 This project shows how the above can be accomplished. 
 
 Prereqs: 
