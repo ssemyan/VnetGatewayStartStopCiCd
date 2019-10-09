@@ -21,6 +21,8 @@ The following should be set up ahead of time.
    1. A KeyVault to hold the connection shared key. The RunAs Service Principal should be given read access to the secrets and the account needs to have the **Azure Resource Manager for template deployment** setting enabled.
    1. An Azure Storage account with a private container to hold the json files. 
 
+To run the project, fill in your own variables in the **parameters.json** and **azure-pipelines.yml** files, and check into an Azure DevOps repo. 
+
 This project consists of the following: 
 
 **template.json**, **parameters.json** (in the VNetGatewayJson directory)

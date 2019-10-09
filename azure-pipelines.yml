@@ -23,6 +23,10 @@ variables:
   deployScheduleTimeGMT: '20:20:00'
   destroyScheduleName: '1800 Weeknights'
   destroyScheduleTimeGMT: '01:00:00'
+  gateway1: ''
+  gatewayConnection1: ''
+  gateway2: ''
+  gatewayConnection2: ''
 
   deployJsonUri: ""
   deployJsonUriSasToken: ""
@@ -36,6 +40,18 @@ steps:
      *.ps1
      **\VNetGatewayJson\*
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+
+- task: PowerShell@2
+  displayName: 'Load gateway and connection values from parameters.json'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $params = ConvertFrom-Json -InputObject (Gc $(Build.ArtifactStagingDirectory)/VNetGatewayJson/parameters.json -Raw)
+      Write-Output "##vso[task.setvariable variable=gateway1;]$($params.parameters.gatewayName.value)"
+      Write-Output "##vso[task.setvariable variable=gatewayConnection1;]$($params.parameters.gatewayConnectionName.value)"
+      Write-Output "##vso[task.setvariable variable=gateway2;]$($params.parameters.gatewayName2.value)"
+      Write-Output "##vso[task.setvariable variable=gatewayConnection2;]$($params.parameters.gatewayConnectionName2.value)"
 
 - task: AzureFileCopy@3
   displayName: 'Copy template and param json to storage account and get URI and SAS token'
@@ -105,6 +121,6 @@ steps:
     azureSubscription: '$(azureSubscriptionName)'
     ScriptType: 'FilePath'
     ScriptPath: '$(Build.ArtifactStagingDirectory)/updateRunbookSchedule.ps1'
-    ScriptArguments: '-resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -scheduleName "$(destroyScheduleName)" -runbookName "$(destroyRunbookName)" -runbookParams @{RESOURCEGROUPNAME="$(resourceGroup)";GATEWAYCONNECTIONNAME="Conn12";GATEWAYCONNECTIONNAME2="Conn21";GATEWAYNAME="TMobGateway";GATEWAYNAME2="TMob2Gateway"} '
+    ScriptArguments: '-resourceGroupName $(resourceGroup) -automationAccountName $(automationAccount) -scheduleName "$(destroyScheduleName)" -runbookName "$(destroyRunbookName)" -runbookParams @{RESOURCEGROUPNAME="$(resourceGroup)";GATEWAYCONNECTIONNAME="$(gatewayConnection1)";GATEWAYCONNECTIONNAME2="$(gatewayConnection2)";GATEWAYNAME="$(gateway1)";GATEWAYNAME2="$(gateway2)"} '
     FailOnStandardError: true
     azurePowerShellVersion: 'LatestVersion'
