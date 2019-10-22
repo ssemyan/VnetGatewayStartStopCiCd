@@ -8,6 +8,8 @@ This code can be run on a schedule in Azure Automation. By using Azure DevOps th
 
 This project shows how the above can be accomplished. 
 
+*Update: Jenkins Implementation added - [see below](#jenkins-implementation)*
+
 Prereqs: 
 
 The following should be set up ahead of time.
@@ -76,3 +78,27 @@ Creates or updates a schedule based on the input parameters.
 
 **updateRunbookSchedule.ps1**
 Associates a runbook with a schedule. New jobs will be created on the scheduled times for the runbook. 
+
+## Jenkins Implementation
+
+This directory also contains a Jenkinsfile that does the same work as the Azure Devops Pipeline. The Jenkins version uses the [Azure Cross-platform CLI](https://docs.microsoft.com/en-us/cli/azure/?view=azure-cli-latest)
+
+The process is mostly the same as the pipeline with a few differences:
+
+1. There is currently no commands for Azure Automation using the Azure CLI so instead I use the REST interfaces with Curl, and using a Bearer token obtained using the CLI. 
+1. I copy the **deploy.ps1** and **destroy.ps1** along with the .json files into the Azure Storage Account so that I can reference them in the REST calls that create the runbooks.
+1. As there is no elegant way to update Runbook Scheduled Jobs, I delete the runbook first (which also deletes the scheduled job) and then create the runbook from scratch. This might be problematic if there is a job currently running. 
+
+The Jenkinsfile requires the following to be installed:
+
+1. Azure CLI
+1. Credentials Binding Plugin
+1. Git Plugin
+1. Pipeline Plugin
+1. Pipeline Utility Steps Plugin
+
+To run, the Jenkinsfile needs the following credentials:
+
+1. sp_pass - Service Principal Password
+1. sp_user - Service Principal User Id
+1. sp_tenant - Service Principal Tenant
